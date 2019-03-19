@@ -101,3 +101,52 @@ kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --f
 ## Console Web para Kafka
 
 https://github.com/yahoo/kafka-manager
+
+
+## Linger.ms & batch.size
+* By default, Kafka tries to send records as soon as possibile
+** It will have up to 5 requests in flight, meaning up to 5 messages individually sent at the same time.
+** After this, it more messages hava to be sent while others are in flight, Kafka is smart and will start batching 
+them while they wait to send them all at once.
+* This smart batching allows Kafka to increase throughput while maitaining very low latency.
+* Batches hava higher compression ratio so better efficiency.
+
+* So how can we control the batching mechanism?
+* Linger.ms: Number of milliseconds a produces is willing to wait before sending a batch out (default 0)
+* By introducing some lag (for example linger.ms=5), we increase the chances of messages being
+send together in a batch.
+* If a batch is full (see batch.size) before the end of the linger.ms period, it will be sent to 
+Kafka right away.
+* **batch.size**: Maximum number of bytes that will be included in a batch. The default is 16kb.
+* Increasing a batch size to something like 32kb or 64kb can help increasing the compression, 
+throughput, and efficiency of requests.
+* Any message that is bigger than the batch size will not be batched.
+* A batch is allocated per partition, so make sure that you don't set it to a number that's too
+high, otherwise you'll run waste memory.
+* Note: you can monitor the average batch size metric using Kafka Producer Metrics.
+
+## High Throughput Producer Demo
+* We'll add snappy message compression in our producer
+* Snappy is very helpful if your message are text based, for example log lines of JSON documents
+* Snappy has a good balance of CPU / compression ratio
+* We'll also increase the batch.size to 32kb and introduce a small delay through linger.ms (20 ms)
+
+´´´
+properties.setProperty(ProducerConfig.COMPRESION_TYPE_CONFIG, "snappy");
+properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20");
+properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32*1024)); //32kb batch size
+´´´
+
+## Producer Default Partition and how keys are hashed
+* By default, your keys area hashed using the "murmur2" algorithm
+* It is most likely preferred to not override the behavior of the partitioner, but it is possibile
+to do so (partitioner.class)
+* The formula is: targetPartition = Utils.abs(Utils.mumur2(record.key())) % numParticions;
+* This mean that same key will go to the same partition (we already know this) and adding
+partitions to a topic will completely alter the formula.
+
+## Max.block.ms & buffer.memory
+* If the producer produces faster than the broker can take, the records will be buffered in memory
+* **buffer.memory=33554432 (32mb)** the size of the send buffer
+* That buffer will fill up over time and fill back down when the throughput to the broker increases
+
