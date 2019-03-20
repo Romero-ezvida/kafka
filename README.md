@@ -5,101 +5,121 @@ version: '2'
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:5.1.1
-    network_mode: host
+    #network_mode: host
+    ports:
+      - 2181:2181
     environment:
-      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     extra_hosts:
       - "moby:127.0.0.1"
       - "default:127.0.0.1"
   kafka:
     image: confluentinc/cp-kafka:5.1.1
-    network_mode: host
+    #network_mode: host
+    ports:
+      - 9092:9092
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: localhost:32181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "default:127.0.0.1"
+  ksql:
+    image: confluentinc/cp-ksql-server:5.1.1
+    #network_mode: host
+    depends_on:
+      - kafka
+    ports:
+      - 8088:8088
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: 127.0.0.1:9092
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_KSQL_SERVICE_ID: ksql_service_id
+    links:
+      - kafka
     extra_hosts:
       - "moby:127.0.0.1"
       - "default:127.0.0.1"
 ```
 
-
-
-
+# Run KSQL 
+```
+docker run -it confluentinc/cp-ksql-cli:5.1.1 http://{id_do_host}:8088
+```
 
 # Commandos Úteis
 
-## Criar tópico
+### Criar tópico
 
 ```bash 
-kafka-topics.sh --zookeeper 127.0.0.1:2181 --topic first_topic --create --partitions 3 --replication-factor 1
+kafka-topics --zookeeper 127.0.0.1:2181 --topic first_topic --create --partitions 3 --replication-factor 1
 ```
 
-## Listar Tópicos
+### Listar Tópicos
 
 ```bash 
-kafka-topics.sh --zookeeper 127.0.0.1:2181 --list
+kafka-topics --zookeeper 127.0.0.1:2181 --list
 ```
 
-## Ver informações detalhadas de um tópico
+### Ver informações detalhadas de um tópico
 
 ```bash 
-kafka-topics.sh --zookeeper 127.0.0.1:2181 --topic first_topic --describe
+kafka-topics --zookeeper 127.0.0.1:2181 --topic first_topic --describe
 ```
 
-## Deletar Tópico
+### Deletar Tópico
 ```bash 
-kafka-topics.sh --zookeeper 127.0.0.1:2181 --topic sedond_topic --delete
+kafka-topics --zookeeper 127.0.0.1:2181 --topic sedond_topic --delete
 ```
 
-## Produzir Mensagens para um Tópico
+### Produzir Mensagens para um Tópico
 ```bash 
-kafka-console-producer.sh --broker-list 127.0.0.1:9092 --topic first_topic
+kafka-console-producer --broker-list 127.0.0.1:9092 --topic first_topic
 ```
 
-## Consumir um tópico diretamente
+### Consumir um tópico diretamente
 ```bash 
-kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic first_topic
+kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic
 ```
 
-## Consumir um tópico a partir de um grupo de consumidores
+### Consumir um tópico a partir de um grupo de consumidores
 ```bash 
-kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic first_topic --group my_first_group
+kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --group my_first_group
 ```
 
-## Listar grupo de consumidores
+### Listar grupo de consumidores
 ```bash 
-kafka-consumer-groups.sh --bootstrap-server 127.0.0.1:9092 --list
+kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --list
 ```
 
-## Exibir informações do grupo
+### Exibir informações do grupo
 ```bash 
-kafka-consumer-groups.sh --bootstrap-server 127.0.0.1:9092 --describe --group my_first_group
+kafka-consumer-groups --bootstrap-server 127.0.0.1:9092 --describe --group my_first_group
 ```
 
-## Resetar os offsets commitados em um tópico
+### Resetar os offsets commitados em um tópico
 ```bash 
-kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group my_first_group --reset-offsets --to-earliest --execute --topic first_topic
+kafka-consumer-groups --bootstrap-server localhost:9092 --group my_first_group --reset-offsets --to-earliest --execute --topic first_topic
 ```
 
-## Produzir Mensagem com Chave e Valor
+### Produzir Mensagem com Chave e Valor
 ```bash 
 kafka-console-producer --broker-list 127.0.0.1:9092 --topic first_topic --property parse.key=true --property key.separator=,
 > key,value
 > another key,another value
 ```
 
-## Consumir Mensagens Exibindo a Chave e Valor
+### Consumir Mensagens Exibindo a Chave e Valor
 ```bash 
 kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --from-beginning --property print.key=true --property key.separator=,
 ```
 
-## Console Web para Kafka
-
+### Console Web para Kafka
 https://github.com/yahoo/kafka-manager
 
 
