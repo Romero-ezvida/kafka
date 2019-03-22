@@ -123,10 +123,22 @@ kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --f
 https://github.com/yahoo/kafka-manager
 
 
+## kafka ConnectWorkes Standalone vc Distributed Mode
+* Standalone:
+    * A single process runs your connectors and tasks
+    * Configuration is bundled with your process
+    * very * easy to get started with
+    * Not fault tolerant, no scalability, hard to monitor
+* Distributed:
+    * Muiltiple workers run your connectors and tasks
+    * Configuration is submitted using a REST API
+    * Easy to scale, and fault tolerant (rebalancing in case a worker die)
+    * useful for production deployments of connectors
+
 ## Linger.ms & batch.size
 * By default, Kafka tries to send records as soon as possibile
-** It will have up to 5 requests in flight, meaning up to 5 messages individually sent at the same time.
-** After this, it more messages hava to be sent while others are in flight, Kafka is smart and will start batching 
+    * It will have up to 5 requests in flight, meaning up to 5 messages individually sent at the same time.
+    * After this, it more messages hava to be sent while others are in flight, Kafka is smart and will start batching 
 them while they wait to send them all at once.
 * This smart batching allows Kafka to increase throughput while maitaining very low latency.
 * Batches hava higher compression ratio so better efficiency.
