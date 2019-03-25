@@ -1,22 +1,18 @@
 # docker-compose
 
 ```yml
-version: '2'
 services:
+
   zookeeper:
     image: confluentinc/cp-zookeeper:5.1.1
-    #network_mode: host
     ports:
       - 2181:2181
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    extra_hosts:
-      - "moby:127.0.0.1"
-      - "default:127.0.0.1"
+
   kafka:
     image: confluentinc/cp-kafka:5.1.1
-    #network_mode: host
     ports:
       - 9092:9092
     depends_on:
@@ -24,27 +20,49 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://10.0.1.119:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    extra_hosts:
-      - "moby:127.0.0.1"
-      - "default:127.0.0.1"
+
   ksql:
     image: confluentinc/cp-ksql-server:5.1.1
-    #network_mode: host
     depends_on:
       - kafka
     ports:
       - 8088:8088
     environment:
-      KSQL_BOOTSTRAP_SERVERS: 127.0.0.1:9092
+      KSQL_BOOTSTRAP_SERVERS: 10.0.1.119:9092
       KSQL_LISTENERS: http://0.0.0.0:8088
       KSQL_KSQL_SERVICE_ID: ksql_service_id
     links:
       - kafka
-    extra_hosts:
-      - "moby:127.0.0.1"
-      - "default:127.0.0.1"
+
+  kafka-rest-proxy:
+    image: confluentinc/cp-kafka-rest:5.1.2
+    hostname: kafka-rest-proxy
+    ports:
+      - "8082:8082"
+    environment:
+      # KAFKA_REST_ZOOKEEPER_CONNECT: zoo1:2181
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8082/
+      #KAFKA_REST_SCHEMA_REGISTRY_URL: http://kafka-schema-registry:8081/
+      KAFKA_REST_HOST_NAME: kafka-rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+    depends_on:
+      - zookeeper
+      - kafka
+
+  kafka-topics-ui:
+    image: landoop/kafka-topics-ui:0.9.4
+    hostname: kafka-topics-ui
+    ports:
+      - "8000:8000"
+    environment:
+      KAFKA_REST_PROXY_URL: "http://kafka-rest-proxy:8082/"
+      PROXY: "true"
+    depends_on:
+      - zookeeper
+      - kafka
+      - kafka-rest-proxy
 ```
 
 # Run KSQL 
